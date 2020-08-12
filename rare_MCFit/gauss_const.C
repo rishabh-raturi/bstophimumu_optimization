@@ -18,7 +18,7 @@ void gauss_const()
     	using namespace RooFit;
 
     	TChain *ch = new TChain("tree");
-    	ch->Add("/home/rishabh/project/root_files/DCA/red_ntuples/PhiMuMu_MC_ForFit.root");
+	ch->Add("/afs/cern.ch/work/r/rraturi/public/IsoVar/2016/red_ntuples/PhiMuMu_MC_ForFit.root");
     	TTree *tr = ch;
 
 	int nentries_ = tr->GetEntries();
@@ -51,9 +51,9 @@ void gauss_const()
 	
 	RooRealVar  mean("mean","common means for Crystal Balls", 5.367, bm_min, bm_max);
 	RooRealVar  sigma1("sigma1","sigma of CB1",  0.04, 0., 1.);
-	RooRealVar  sigma2("sigma2","sigma of CB2",  0.02, 0., 1.);
-	RooRealVar  sigM_frac("sigM_frac","fraction of CB",  0., 1.);
-	RooRealVar  n1("n1", "", 1., 140.);
+	RooRealVar  sigma2("sigma2","sigma of CB2",  0.027, 0., 1.);
+	RooRealVar  sigM_frac("sigM_frac","fraction of CB", 0., 1.);
+	RooRealVar  n1("n1", "", 1., 180.);
 	RooRealVar  n2("n2", "", 1., 180.);
 	RooRealVar  alpha1("alpha1","alpha for CB1", 0.1, 5.);
 	RooRealVar  alpha2("alpha2","alpha for CB2", -0.1, -5.0, 0.);
@@ -179,7 +179,25 @@ void gauss_const()
 
         P1->cd();
         xframe->Draw();
-	paveText->Draw();
+
+	TPaveText* pText = new TPaveText(0.65,0.60,0.83,0.88,"NDC");
+        pText->SetBorderSize(0.0);
+        pText->SetFillColor(kWhite);
+        pText->SetFillStyle(0);
+        pText->SetTextSize(0.02);
+        pText->AddText(Form("Sig. Yield = %.0f #pm %.0f", nsig.getVal(), nsig.getError()));
+        pText->AddText(Form("mean  = %.7f #pm %.7f GeV" , mean.getVal() , mean.getError()));
+        pText->AddText(Form("#sigma_{1} = %.7f #pm %.7f GeV", sigma1.getVal(), sigma1.getError()));
+        pText->AddText(Form("#sigma_{2} = %.7f #pm %.7f GeV", sigma2.getVal(), sigma2.getError()));
+        pText->AddText(Form("#sigma_{eff} = %.7f  GeV", eff_sigma));
+        pText->AddText(Form("frac = %.7f #pm %.7f ", sigM_frac.getVal(), sigM_frac.getError()));
+        pText->AddText(Form("#alpha_{1} = %.7f #pm %.7f ", alpha1.getVal(), alpha1.getError()));
+        pText->AddText(Form("#alpha_{2} = %.7f #pm %.7f ", alpha2.getVal(), alpha2.getError()));
+        pText->AddText(Form("n_{1} = %.7f #pm %.7f", n1.getVal(), n1.getError()));
+        pText->AddText(Form("n_{2} = %.7f #pm %.7f", n2.getVal(), n2.getError()));
+        pText->AddText(Form("#chi^{2}/dof  = %.5f ", chi2dof ));
+        pText->Draw();
+
 	mark->Draw();
 
 	P2->cd();
@@ -190,7 +208,7 @@ void gauss_const()
 
 	// using gaussian constrained parameters from MC to fit the data
 	TChain *ch1 = new TChain("tree");
-	ch1->Add("/home/rishabh/project/root_files/DCA/red_ntuples/PhiMuMu_Data_ForFit.root");
+	ch1->Add("/afs/cern.ch/work/r/rraturi/public/IsoVar/2016/red_ntuples/PhiMuMu_Data_ForFit.root");
 	TTree *tr1 = ch1;
 	RooDataSet Data("Data","data sample 2016", ch1, observables);
 	RooDataSet *RedData = (RooDataSet*)Data.reduce(cutTotal);
@@ -345,5 +363,13 @@ void gauss_const()
         L2->Draw();
         L3->Draw();
 
+	c->SaveAs("rare_MCFit_2016_Log.pdf");
+	c->SaveAs("rare_MCFit_2016_Log.png");
+
+	c2->SaveAs("rare_MCFit_2016.pdf");
+	c2->SaveAs("rare_MCFit_2016.png");
+
+	c3->SaveAs("rare_DataFit_2016.pdf");
+	c3->SaveAs("rare_DataFit_2016.png");
 }
 
