@@ -9,7 +9,7 @@ void Jpsi_MCFit_Log()
         using namespace RooFit;
 
         TChain *ch = new TChain("tree");
-	ch->Add("./JPsi_MC_ForFit.root");
+	ch->Add("/home/rishabh/project/root_files/val/2016/red_ntuples/JPsi_MC_ForFit.root");
 	TTree* tr=ch;
 
 	int nentries_ = tr->GetEntries();
@@ -41,9 +41,9 @@ void Jpsi_MCFit_Log()
 	RooDataSet *redData = (RooDataSet*)data.reduce(cutTotal);  // redData consists data to be fitted
 
 	RooRealVar  mean("mean","common means for Crystal Balls", 5.367, bm_min, bm_max);
-        RooRealVar  sigma1("sigma1","sigma of CB1", 0.02, 0., 0.026);
+        RooRealVar  sigma1("sigma1","sigma of CB1", 0.02, 0., 0.029);
         RooRealVar  sigma2("sigma2","sigma of CB2", 0.04, 0., 0.049);
-        RooRealVar  sigM_frac("sigM_frac","fraction of CB", 0.55, 0.5, 0.7);
+        RooRealVar  sigM_frac("sigM_frac","fraction of CB", 0.5, 0.4, 0.7);
         RooRealVar  n1("n1", "", 1., 140.);
 	RooRealVar  n2("n2", "", 1., 100.);
         RooRealVar  alpha1("alpha1","alpha for CB1", 0.1, 4.);
@@ -59,7 +59,7 @@ void Jpsi_MCFit_Log()
 	model.Print("t");
 
 	// fitting model to the data
-	RooFitResult* fitres = model.fitTo(*redData);
+	RooFitResult* fitres = model.fitTo(*redData, Extended(true));
 
 	TCanvas *c = new TCanvas("c","c",1400,1400);
         TPad *p1   = new TPad("p1","p1", 0.1, 0.25, 0.995, 0.97);
@@ -112,7 +112,7 @@ void Jpsi_MCFit_Log()
         paveText->AddText(Form("#sigma_{eff} = %.5f  GeV", eff_sigma));
         paveText->AddText(Form("frac = %.5f #pm %.5f ", sigM_frac.getVal(), sigM_frac.getError()));
         paveText->AddText(Form("#alpha_{1} = %.7f #pm %.7f ", alpha1.getVal(), alpha1.getError()));
-        paveText->AddText(Form("#alpha_{1} = %.7f #pm %.7f ", alpha1.getVal(), alpha1.getError()));
+        paveText->AddText(Form("#alpha_{2} = %.7f #pm %.7f ", alpha2.getVal(), alpha2.getError()));
         paveText->AddText(Form("n_{1} = %.7f #pm %.7f", n1.getVal(), n1.getError()));
         paveText->AddText(Form("n_{2} = %.7f #pm %.7f", n2.getVal(), n2.getError()));
         paveText->AddText(Form("#chi^{2}/dof  = %.5f ", chi2dof ));
