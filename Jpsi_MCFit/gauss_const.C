@@ -58,7 +58,7 @@ void gauss_const()
 	RooRealVar  sigma2("sigma2","sigma of CB2",  0.04, 0.039, 0.049);
 	RooRealVar  sigM_frac("sigM_frac","fraction of CB", 0.5, 0.4, 0.7);
 	RooRealVar  n1("n1", "",80., 1., 140.);
-	RooRealVar  n2("n2", "",40., 1., 100.);
+	RooRealVar  n2("n2", "",40., 1., 180.);
 	RooRealVar  alpha1("alpha1","alpha for CB1", 2., 0.1, 4.);
 	RooRealVar  alpha2("alpha2","alpha for CB2", -1., -5.0, 0.);
 
@@ -121,7 +121,7 @@ void gauss_const()
 
 	xframe->Draw();
 
-	TPaveText* paveText = new TPaveText(0.65,0.60,0.83,0.88,"NDC");
+	TPaveText* paveText = new TPaveText(0.65,0.40,0.83,0.88,"NDC");
   	paveText->SetBorderSize(0.0);
   	paveText->SetFillColor(kWhite);
   	paveText->SetFillStyle(0);
@@ -214,24 +214,24 @@ void gauss_const()
 	RooDataSet *redMC = (RooDataSet*)MC.reduce(cutTotal);  //final reduced dataset
 
 	RooRealVar  md("mean","common means for Crystal Balls", 5.4, bm_min, bm_max);
-        RooRealVar  sig1("sigma1","sigma of CB1",  0.04, 0., 1.);
-        RooRealVar  sig2("sigma2","sigma of CB2",  0.02, 0., 1.);
-        RooRealVar  MC_frac("sigM_frac","fraction of CB",  0., 1.);
-        RooRealVar  n1_mc("n1", "", 1., 140.);
-        RooRealVar  n2_mc("n2", "", 1., 140.);
-        RooRealVar  alp1("alpha1","alpha for CB1", 0.1, 5.);
-        RooRealVar  alp2("alpha2","alpha for CB2", -0.1, -5.0, 0.);
+        RooRealVar  sig1("sig1","sigma of CB1",  0.04, 0., 1.);
+        RooRealVar  sig2("sig2","sigma of CB2",  0.02, 0., 1.);
+        RooRealVar  MC_frac("MC_frac","fraction of CB", 0.5, 0., 1.);
+        RooRealVar  n1_mc("n1_mc", "", 30., 1., 140.);
+        RooRealVar  n2_mc("n2_mc", "", 30., 1., 140.);
+        RooRealVar  alp1("alp1","alpha for CB1", 0.6, 0.1, 5.);
+        RooRealVar  alp2("alp2","alpha for CB2", -0.1, -5.0, 0.);
 
-	RooCBShape CB1_mc("CB1_mc","Crystal Ball-1", Bmass, md, sig1, alp1,n1_mc);
-        RooCBShape CB2_mc("CB2_mc","Crystal Ball-2", Bmass, md, sig2, alp2,n2_mc);
+	RooCBShape Pb1("Pb1","Crystal Ball-1", Bmass, md, sig1, alp1, n1_mc);
+        RooCBShape Pb2("Pb2","Crystal Ball-2", Bmass, md, sig2, alp2, n2_mc);
 
-	RooAddPdf CB_mc("CB_mc","CB1_mc+CB2_mc", RooArgList(CB1_mc,CB2_mc), RooArgList(MC_frac));
+	RooAddPdf Pb("Pb","P1+P2", RooArgList(Pb1,Pb2), RooArgList(MC_frac));
         RooRealVar nsig_mc("nsig","nsig",1E3,500,1.1*tr4->GetEntries());
-        RooExtendPdf model_mc("model_mc","model_mc", CB_mc, nsig_mc);
+        RooExtendPdf pdf("pdf","pdf", Pb, nsig_mc);
 
-	model_mc.Print("t");
+	pdf.Print("t");
 
-	RooFitResult* fitres_mc = model_mc.fitTo(*redMC);
+	RooFitResult* fitres_mc = pdf.fitTo(*redMC);
 
 	TCanvas *c4 = new TCanvas("c4","c4",1500,1500);
         TPad *k1   = new TPad("p1","p1", 0.1, 0.25, 0.995, 0.97);
@@ -245,10 +245,11 @@ void gauss_const()
         xframe_mc->GetXaxis()->SetTitle("#bf{m(K^{+}K^{-}#mu^{+}#mu^{-}) [GeV]}");
 
 	redMC->plotOn(xframe_mc,RooFit::Name("mc"));
-	model_mc.plotOn(xframe_mc, RooFit::Name("MC PDF"), LineColor(kBlue));
+	pdf.plotOn(xframe_mc, RooFit::Name("MC PDF"), LineColor(kBlue));
 	RooHist* hpull_mc = xframe_mc->pullHist();
 
 	printf("**************************************");
+	printf("\n Peaking background sigma values from MC->");
         printf("\n #sigma_{1}: %.7f", sig1.getVal());
         printf("\n #sigma_{2}: %.7f", sig2.getVal());
         double eff_sigma_mc = sqrt(MC_frac.getVal()*pow(sig1.getVal(),2) + (1 - MC_frac.getVal()) * pow(sig2.getVal(),2));
@@ -259,17 +260,17 @@ void gauss_const()
         std::cout<<"\n"<<std::endl;
         std::cout<<"#chi^{2}/dof= "<< chi2dof_mc << std::endl;
 
-	model_mc.plotOn(xframe_mc, RooFit::Name("CB1_mc"), Components("CB1_mc"), LineStyle(kDashed), LineColor(kRed));
-	model_mc.plotOn(xframe_mc, RooFit::Name("CB2_mc"), Components("CB2_mc"), LineStyle(kDashed), LineColor(kGreen));
+	pdf.plotOn(xframe_mc, RooFit::Name("Pb1"), Components("Pb1"), LineStyle(kDashed), LineColor(kRed));
+	pdf.plotOn(xframe_mc, RooFit::Name("Pb2"), Components("Pb2"), LineStyle(kDashed), LineColor(kGreen));
 
 	xframe_mc->Draw();
 
-	TPaveText* pT_mc = new TPaveText(0.65,0.60,0.83,0.88,"NDC");
+	TPaveText* pT_mc = new TPaveText(0.65,0.40,0.83,0.88,"NDC");
         pT_mc->SetBorderSize(0.0);
         pT_mc->SetFillColor(kWhite);
         pT_mc->SetFillStyle(0);
         pT_mc->SetTextSize(0.02);
-        pT_mc->AddText(Form("N_{sig} = %.0f #pm %.0f", nsig_mc.getVal(), nsig_mc.getError())); 
+        pT_mc->AddText(Form("N_{PB} = %.0f #pm %.0f", nsig_mc.getVal(), nsig_mc.getError())); 
         pT_mc->AddText(Form("#mu  = %.7f #pm %.7f GeV" , md.getVal() , md.getError()));
         pT_mc->AddText(Form("#sigma_{1} = %.7f #pm %.7f GeV", sig1.getVal(), sig1.getError()));
         pT_mc->AddText(Form("#sigma_{2} = %.7f #pm %.7f GeV", sig2.getVal(), sig2.getError()));
@@ -314,14 +315,14 @@ void gauss_const()
 	l2->Draw();
 	l3->Draw();
 
-	cout<< "***********************************************************"<< endl;
-	cout<< "***********************************************************"<< endl;
+	cout<< "\n***********************************************************"<< endl;
+	cout<< "\n***********************************************************"<< endl;
 
-	cout<< "MC Fitting completed"<< endl;
-	cout<< "Data Fitting started from the paramaters from MC"<< endl;
+	cout<< "\n MC Fitting completed"<< endl;
+	cout<< "\n Data Fitting started from the paramaters from MC"<< endl;
 
-	cout<< "***********************************************************"<< endl;
-	cout<< "***********************************************************"<< endl;
+	cout<< "\n***********************************************************"<< endl;
+	cout<< "\n***********************************************************"<< endl;
 
 	TChain *ch1 = new TChain("tree");
 	ch1->Add("/home/rishabh/project/root_files/val/2016/red_ntuples/JPsi_Data_ForFit.root");
@@ -337,14 +338,14 @@ void gauss_const()
         RooExponential bkgE("bkgE","exponential PDF", Bmass, lambda);
 	RooRealVar nbkgE("nbkgE","number of exponential bkg events", 8000, 0, 1E7);
 
-	RooRealVar  mn("mean","common means for Crystal Balls", 5.367, bm_min, bm_max);
-        RooRealVar  s1("sigma1","sigma of CB1",  0.02, 0., 0.1);
-        RooRealVar  s2("sigma2","sigma of CB2",  0.04, 0., 0.1);
-        RooRealVar  f("sigM_frac","fraction of CB", 0.5, 0., 0.1);
-        RooRealVar  norm1("n1", "", 20., 1., 100.);
-        RooRealVar  norm2("n2", "", 20., 1., 100.);
-        RooRealVar  a1("alpha1","alpha for CB1",0.5, 0.1, 4.);
-        RooRealVar  a2("alpha2","alpha for CB2", -0.1, -5.0, 0.);
+	RooRealVar  mn("mn","common means for Crystal Balls", 5.367, bm_min, bm_max);
+        RooRealVar  s1("s1","sigma of CB1",  0.02, 0., 0.1);
+        RooRealVar  s2("s2","sigma of CB2",  0.04, 0., 0.1);
+        RooRealVar  f("f","fraction of CB", 0.5, 0.1, 1.);
+        RooRealVar  norm1("norm1", "", 30., 1., 150.);
+        RooRealVar  norm2("norm2", "", 40., 1., 150.);
+        RooRealVar  a1("a1","alpha for CB1", 0.5, 0., 5.);
+        RooRealVar  a2("a2","alpha for CB2", -1., -5.0, 0.);
 
 	RooCBShape PB1("PB1","Crystal Ball-1", Bmass, mn, s1, a1,norm1);
         RooCBShape PB2("PB2","Crystal Ball-2", Bmass, mn, s2, a2,norm2);
@@ -352,19 +353,25 @@ void gauss_const()
 	RooAddPdf PB("PB","PB1+PB2", RooArgList(PB1,PB2), RooArgList(f));
 
 	//stores the yield of peaking background
-	RooRealVar nbkg_mc("nbkg_mc", "k star yield in data", 5000, 100,1.1*tr4->GetEntries());
+	//RooRealVar nbkg_mc("nbkg_mc", "k star yield in data", 500, 100, 1.1*tr4->GetEntries());
+	RooRealVar nbkg_mc("nbkg_mc", "k star yield in data", 3543);
+	
+	RooExtendPdf CBE("CBE","CBE", CB, nsigD);
+	RooExtendPdf PBE("PBE", "PBE", PB, nbkg_mc);
+
+	RooAddPdf CP("CP","CBE+PBE", RooArgList(CBE,PBE));
 
 	//final pdf for data fitting
-	RooAddPdf mod("mod", "CB+PB+e", RooArgList(CB,PB,bkgE), RooArgList(nsigD, nbkg_mc, nbkgE));
+	RooAddPdf mod("mod", "CP+e", RooArgList(CP,bkgE), RooArgList(nsigD, nbkgE));
 	
         mod.Print("t");
 	
-	printf("###############################################");
-	printf("###############################################");
-	cout<< "Pdf evaludation for data fitting"<< endl;
+	printf("\n ###############################################");
+	printf("\n ###############################################");
+	cout<< "\n Pdf evaludation for data fitting"<< endl;
 	std::cout<< mod.getLogVal()<<std::endl;
-	printf("###############################################");
-	printf("###############################################");
+	printf("\n ###############################################");
+	printf("\n ###############################################");
 
 	//signal shape double crystal ball- gaussian constraints
 	//RooGaussian   gaus_mean("gaus_mean", "gaus_mean", mean, RooConst(mean.getVal()), RooConst(mean.getError()));
@@ -377,21 +384,30 @@ void gauss_const()
 	RooGaussian   gaus_frac("gaus_frac", "gaus_frac", sigM_frac, RooConst(sigM_frac.getVal()), RooConst(sigM_frac.getError())); 
 
 	//peaking background shape from the JPsiKstar MC
-	RooGaussian  g_m("g_m", "g_m", md, RooConst(md.getVal()), RooConst(md.getError()));
-	RooGaussian  g_npb("g_npb", "g_npb", nsig_mc, RooConst(nsig_mc.getVal()*0.78728), RooConst(nsig_mc.getError()*0.78728));
+	//RooGaussian  g_m("g_m", "g_m", md, RooConst(md.getVal()), RooConst(md.getError()));
+	
+	/*RooGaussian  g_npb("g_npb", "g_npb", nsig_mc, RooConst(nsig_mc.getVal()*0.78728), RooConst(nsig_mc.getError()*0.78728));
 	RooGaussian  g_sig1("g_sig1", "g_sig1", sig1, RooConst(sig1.getVal()), RooConst(sig1.getError()));
 	RooGaussian  g_sig2("g_sig2", "g_sig2", sig2, RooConst(sig2.getVal()), RooConst(sig2.getError()));
         RooGaussian  g_alp1("g_alp1", "g_alp1", alp1, RooConst(alp1.getVal()), RooConst(alp1.getError()));
         RooGaussian  g_alp2("g_alp2", "g_alp2", alp2, RooConst(alp2.getVal()), RooConst(alp2.getError()));
         RooGaussian  g_n1_mc("g_n1", "g_n1", n1_mc, RooConst(n1_mc.getVal()), RooConst(n1_mc.getError()));
         RooGaussian  g_n2_mc("g_n2", "g_n2", n2_mc, RooConst(n2_mc.getVal()), RooConst(n2_mc.getError()));
-        RooGaussian  g_frac("g_frac", "g_frac", MC_frac, RooConst(MC_frac.getVal()), RooConst(MC_frac.getError()));
+        RooGaussian  g_frac("g_frac", "g_frac", MC_frac, RooConst(MC_frac.getVal()), RooConst(MC_frac.getError()));*/
 	
 
 	RooArgSet gausConstraints(gaus_sigma1, gaus_alpha1, gaus_n1, gaus_sigma2, gaus_alpha2, gaus_n2, gaus_frac);
-	gausConstraints.add(RooArgSet(g_m ,g_sig1, g_sig2, g_alp1, g_alp2, g_n1_mc, g_n2_mc, g_frac, g_npb));
+	//gausConstraints.add(RooArgSet(g_sig1, g_sig2, g_alp1, g_alp2, g_n1_mc, g_n2_mc, g_frac, g_npb));
 
 	RooFitResult* fitres1 = mod.fitTo(*RedData, Extended(kTRUE), Save(kTRUE), ExternalConstraints(gausConstraints));
+	
+	cout << "fit result with constraint" << endl;
+	fitres1->Print("v");
+
+	/*printf("\n gaussian sigma1: %.5f", gaus_sigma1.getVal());
+	printf("\n gaussian sigma2: %.5f", gaus_sigma2.getVal());
+	printf("\n gaussian frac: %.5f", gaus_frac.getVal());*/
+	//cout << "gaussian sigma1-> "<< gaus_sigma1 <<endl;
 
 	TCanvas *c3 = new TCanvas("c3", "c3", 1250, 1500);
 	TPad *pad1   = new TPad("pad1","pad1", 0.01, 0.25, 0.995, 0.97);
@@ -400,7 +416,7 @@ void gauss_const()
         pad2->Draw();
 
 	pad1->cd();
-	RooPlot *xframe1 = Bmass.frame(Title(""), Bins(50));
+	RooPlot *xframe1 = Bmass.frame(Title(""), Bins(150));
 	xframe1->SetTitle("");
         xframe1->GetXaxis()->SetTitle("#bf{m(K^{+}K^{-}#mu^{+}#mu^{-}) [GeV]}");
         xframe1->GetYaxis()->SetTitleOffset(1.55);
@@ -414,7 +430,7 @@ void gauss_const()
 	// create a pull distribution for the fit
         RooHist* hpull1 = xframe1->pullHist();
 
-	printf("**************************************");
+	printf("\n **************************************");
         printf("\n sigma1: %.5f", sigma1.getVal());
         printf("\n sigma2: %.5f", sigma2.getVal());
 	double gaus_eff_sigma      = sqrt(sigM_frac.getVal()*pow(sigma1.getVal(),2) + (1 - sigM_frac.getVal()) * pow(sigma2.getVal(),2));
@@ -428,15 +444,14 @@ void gauss_const()
 	// plotting total crystal ball in the frame
         mod.plotOn(xframe1, RooFit::Name("CBall_data"), Components("CB"), LineColor(kGreen), LineWidth(3));
         mod.plotOn(xframe1, RooFit::Name("bkgE_data"), Components("bkgE"), LineColor(kRed), DrawOption("F"), FillColor(kRed), FillStyle(3003));
-	mod.plotOn(xframe1, RooFit::Name("CM_mc"), Components("CB_mc"), LineColor(kMagenta), DrawOption("F"), FillColor(kMagenta), FillStyle(3008));
+	mod.plotOn(xframe1, RooFit::Name("PB"), Components("PB"), LineColor(kMagenta), DrawOption("F"), FillColor(kMagenta), FillStyle(3008));
 
 	printf("###############################################");
 	printf("###############################################");
 	printf("###############################################");
 	printf("###############################################");
 
-	printf("Peaking background components->");
-	printf("\n mean_mc: %.5f", g_m.getVal());
+	/*printf("\n Peaking background components->");
         printf("\n sigma1_mc: %.5f", g_sig1.getVal());
         printf("\n sigma2_mc: %.5f", g_sig2.getVal());
         double g_eff      = sqrt(g_frac.getVal()*pow(g_sig1.getVal(),2) + (1 - g_frac.getVal()) * pow(g_sig2.getVal(),2));
@@ -445,7 +460,7 @@ void gauss_const()
 	printf("\n n1: %.5f", g_n1_mc.getVal());
 	printf("\n n2: %.5f", g_n2_mc.getVal());
 	printf("\n alpha1: %.5f", g_alp1.getVal());
-	printf("\n alpha2: %.5f", g_alp2.getVal());
+	printf("\n alpha2: %.5f", g_alp2.getVal());*/
 
 	printf("###############################################");
 	printf("###############################################");
@@ -559,5 +574,8 @@ void gauss_const()
 
 	c3->SaveAs("Jpsi_DataFit_2016.pdf");
 	c3->SaveAs("Jpsi_DataFit_2016.png");
+
+	c4->SaveAs("Kstar_Fit_2016.pdf");
+        c4->SaveAs("Kstar_Fit_2016.png");
 }
 
