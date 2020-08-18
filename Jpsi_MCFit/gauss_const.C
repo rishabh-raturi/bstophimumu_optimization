@@ -11,54 +11,43 @@
 #include <TString.h>
 #include <TLegend.h>
 #include <RooCBShape.h>
+#include "StdFitter.cc"
 
 void gauss_const()
 {
+    gROOT->SetBatch(1);
 	gSystem->Load("libRooFit");
     	using namespace RooFit;
 
 	//add the input file
-    	TChain *ch = new TChain("tree");
-	ch->Add("/home/rishabh/project/root_files/val/2016/red_ntuples/JPsi_MC_ForFit.root");
-    	TTree *tr = ch;
+    TChain *tr = new TChain("tree");
+	tr->Add("/afs/cern.ch/work/r/rraturi/public/IsoVar/2016/red_ntuples/JPsi_MC_ForFit.root");
 
 	int nentries_ = tr->GetEntries();
     	cout << "\n=> total entries in signal tree = " << nentries_ << endl;
 
 	double bm_min(5.2), bm_max(5.6);
 
-	RooRealVar Bmass("Bmass","#bf{m(K^{+}K^{-}#mu^{+}#mu^{-}) [GeV]}", bm_min, bm_max);
-    	RooRealVar Mumumass("Mumumass","M^{#mu#mu}", 0., 10.);
-    	RooRealVar Mumumasserr("Mumumasserr","Error of M^{#mu#mu}", 0., 10.);
-    	RooRealVar Phimass("Phimass","phi mass", 0.,10.);
-    	RooRealVar Kmpt("Kmpt","K- pt", 0., 200.);
-    	RooRealVar Kppt("Kppt","K+ pt", 0., 200.);
-    	RooRealVar Kmtrkdcasigbs("Kmtrkdcasigbs","K^{-} track DCA/#sigma beam spot", 0., 1000.);
-    	RooRealVar Kptrkdcasigbs("Kptrkdcasigbs","K^{+} track DCA/#sigma beam spot", 0., 1000.);
-    	RooRealVar Blxysig("Blxysig","Blxy sig.", 0., 1000.);
-    	RooRealVar Bcosalphabs2d("Bcosalphabs2d","Bcosalphabs2d", 0., 1.);
-    	RooRealVar Bvtxcl("Bvtxcl","B vtx cl.", 0., 1.);
-    	RooRealVar Triggers("Triggers","",0.,10.);
-	RooRealVar Q2("Q2", "", 1., 20.);
+	    RooRealVar Bmass("Bmass","#bf{m(K^{+}K^{-}#mu^{+}#mu^{-}) [GeV]}", bm_min, bm_max);
 
-	RooArgSet  observables(Bmass,Mumumass,Kmpt,Kppt,Kmtrkdcasigbs,Kptrkdcasigbs,Blxysig,Bcosalphabs2d,Bvtxcl);
-	observables.add(RooArgSet(Phimass,Triggers,Q2));
+	RooArgSet  observables(Bmass); //,Mumumass,Kmpt,Kppt,Kmtrkdcasigbs,Kptrkdcasigbs,Blxysig,Bcosalphabs2d,Bvtxcl);
 
 	//dataset defined from the input file
-	RooDataSet data("data","dataset with Bmass", ch, observables);
+	RooDataSet data("data","dataset with Bmass", tr, observables);
 
 	TCut c1 = Form("Bmass>%f && Bmass<%f",bm_min,bm_max);
     	TCut cutTotal = c1  ;
 
 	//reduced dataset
-    	RooDataSet *redData = (RooDataSet*)data.reduce(cutTotal);   //redData consists data to be fitted
+  	RooDataSet *redData = (RooDataSet*)data.reduce(cutTotal);   //redData consists data to be fitted
+    std::cout<<"After final cut: "<<redData->sumEntries()<<std::endl;
 	
 	RooRealVar  mean("mean","common means for Crystal Balls", 5.367, bm_min, bm_max);
-	RooRealVar  sigma1("sigma1","sigma of CB1",  0.02, 0., 0.028);
-	RooRealVar  sigma2("sigma2","sigma of CB2",  0.04, 0.039, 0.049);
-	RooRealVar  sigM_frac("sigM_frac","fraction of CB", 0.5, 0.4, 0.7);
-	RooRealVar  n1("n1", "",80., 1., 140.);
-	RooRealVar  n2("n2", "",40., 1., 100.);
+	RooRealVar  sigma1("sigma1","sigma of CB1",  0.02, 0., 0.28);
+	RooRealVar  sigma2("sigma2","sigma of CB2",  0.04, 0.00039, 0.49);
+	RooRealVar  sigM_frac("sigM_frac","fraction of CB", 0.4, 0.01, 1.);
+	RooRealVar  n1("n1", "",50, 1., 140.);
+	RooRealVar  n2("n2", "",40, 1., 140.);
 	RooRealVar  alpha1("alpha1","alpha for CB1", 2., 0.1, 4.);
 	RooRealVar  alpha2("alpha2","alpha for CB2", -1., -5.0, 0.);
 
@@ -72,7 +61,7 @@ void gauss_const()
 	//final model used for fitting
 	RooExtendPdf model("model","model", CB, nsig);
 
-	model.Print("t");
+	model.Print();
 
 	cout<< "pdf evaluation for MC fitting" << endl;
 	cout<< model.getLogVal() <<endl;
@@ -200,38 +189,71 @@ void gauss_const()
 	P2->cd();
 	pull->Draw("P");
 	l1->Draw();
-        l2->Draw();
-        l3->Draw();
-	
+    l2->Draw();
+    l3->Draw();
+
+	c->SaveAs("Jpsi_MCFit_2016_Log.pdf"); 
+    //exit(0);
 
 	//peaking background component
-	TChain *ch4 =new TChain("tree");
-	ch4->Add("/home/rishabh/project/root_files/val/2016/red_ntuples/JKstar_MC_ForFit.root");
-	TTree *tr4 = ch4;
+	TChain *tr4 =new TChain("tree");
+	tr4->Add("/afs/cern.ch/work/r/rraturi/public/IsoVar/2016/red_ntuples/JKstar_MC_ForFit.root");
 
 	//creating dataset for peaking background fitting
-	RooDataSet MC("MC","dataset with Bmass", ch4, observables);
+	RooDataSet MC("MC","dataset with Bmass", tr4, observables);
 	RooDataSet *redMC = (RooDataSet*)MC.reduce(cutTotal);  //final reduced dataset
+    std::cout<<"After final cut: "<<redMC->sumEntries()<<std::endl;
 
-	RooRealVar  md("mean","common means for Crystal Balls", 5.4, bm_min, bm_max);
-        RooRealVar  sig1("sigma1","sigma of CB1",  0.04, 0., 1.);
-        RooRealVar  sig2("sigma2","sigma of CB2",  0.02, 0., 1.);
-        RooRealVar  MC_frac("sigM_frac","fraction of CB",  0., 1.);
-        RooRealVar  n1_mc("n1", "", 1., 140.);
-        RooRealVar  n2_mc("n2", "", 1., 140.);
-        RooRealVar  alp1("alpha1","alpha for CB1", 0.1, 5.);
-        RooRealVar  alp2("alpha2","alpha for CB2", -0.1, -5.0, 0.);
+	    RooRealVar  md("meanKStar","common means for Crystal Balls", 5.41, 5.35, 5.45); // bm_min, bm_max);
+        RooRealVar  sig1("sig1","sigma of CB1",  0.02, 0., 1.);
+        RooRealVar  sig2("sig2","sigma of CB2",  0.04, 0., 1.);
+        RooRealVar  MC_frac("sigM_fracKStar","fraction of CB",  0.5, 0., 1.);
+        RooRealVar  n1_mc("N1", "", 80., 1., 1400.);
+        RooRealVar  n2_mc("N2", "", 40., 0., 200.);
+        RooRealVar  alp1("alp1","alpha for CB1", -.1, -3.5, 4.);
+        RooRealVar  alp2("alp2","alpha for CB2", -1., -5.0, 0.);
 
-	RooCBShape CB1_mc("CB1_mc","Crystal Ball-1", Bmass, md, sig1, alp1,n1_mc);
+	    RooCBShape CB1_mc("CB1_mc","Crystal Ball-1", Bmass, md, sig1, alp1,n1_mc);
         RooCBShape CB2_mc("CB2_mc","Crystal Ball-2", Bmass, md, sig2, alp2,n2_mc);
 
-	RooAddPdf CB_mc("CB_mc","CB1_mc+CB2_mc", RooArgList(CB1_mc,CB2_mc), RooArgList(MC_frac));
-        RooRealVar nsig_mc("nsig","nsig",1E3,500,1.1*tr4->GetEntries());
-        RooExtendPdf model_mc("model_mc","model_mc", CB_mc, nsig_mc);
+	    RooAddPdf *CB_mc=new RooAddPdf("CB_mc","CB1_mc+CB2_mc", RooArgList(CB1_mc,CB2_mc), RooArgList(MC_frac));
+        RooRealVar nsig_mc("nsigKStar","nsigKStar",100.,1.,1.1*tr4->GetEntries());
+        //RooExtendPdf model_mc=("model_mc","model_mc", CB_mc, nsig_mc);
+        RooExtendPdf *model_mc=new RooExtendPdf("model_mc","model_mc", *CB_mc, nsig_mc);
 
-	model_mc.Print("t");
+	//model_mc.Print();
+    cout<<"LogVal: "<< model_mc->getLogVal() <<endl;
+	RooFitResult* fitres_mc = model_mc->fitTo(*redMC, PrintEvalErrors(0), EvalErrorWall(kFALSE));
+    /*RooMinuit *minuit=0;
+    StdFitter *fitter=new StdFitter();//=StdFitter::StdFitter();
+    RooCmdArg *cmd =new RooCmdArg(); cmd->addArg(PrintEvalErrors(0)); cmd->addArg(EvalErrorWall(kFALSE));
+    fitter->StdFitter::addNLLOpt(cmd);
+    minuit=fitter->StdFitter::Init(model_mc, redMC);
+    RooFitResult *res = fitter->StdFitter::FitMigrad();
+    fitter->StdFitter::FitHesse();*/
 
-	RooFitResult* fitres_mc = model_mc.fitTo(*redMC);
+    //----------------------------------------------------------------------------------------
+    //RooAbsReal *nll=fitter->GetNLL();
+   RooNLLVar nll("nll", "nll", *model_mc, *redMC);
+   RooPlot *frame2 = md.frame(Range(5.35, 5.45), Title("-log(L) scan vs mean, problematic regions masked"));
+   nll.plotOn(frame2, PrintEvalErrors(-1), ShiftToZero(), EvalErrorValue(nll.getVal() + 10), LineColor(kRed));
+   frame2->SetMaximum(15);
+   frame2->SetMinimum(0);
+ 
+   TCanvas *cnll = new TCanvas("rf606_nllerrorhandling", "rf606_nllerrorhandling", 1200, 400);
+   cnll->Divide(2); cnll->cd(1);
+   frame2->GetYaxis()->SetTitleOffset(1.4);
+   frame2->Draw();
+
+   RooPlot *frame3 = n1_mc.frame(Range(1, 2), Title("-log(L) scan vs n1, problematic regions masked"));
+   nll.plotOn(frame3, PrintEvalErrors(-1), ShiftToZero(), EvalErrorValue(nll.getVal() + 10), LineColor(kRed));
+   //frame3->SetMaximum(15);
+   //frame3->SetMinimum(0);
+    cnll->cd(2);
+   frame3->GetYaxis()->SetTitleOffset(1.4);
+   frame3->Draw();
+   cnll->SaveAs("nll.pdf");
+    //----------------------------------------------------------------------------------------
 
 	TCanvas *c4 = new TCanvas("c4","c4",1500,1500);
         TPad *k1   = new TPad("p1","p1", 0.1, 0.25, 0.995, 0.97);
@@ -245,7 +267,7 @@ void gauss_const()
         xframe_mc->GetXaxis()->SetTitle("#bf{m(K^{+}K^{-}#mu^{+}#mu^{-}) [GeV]}");
 
 	redMC->plotOn(xframe_mc,RooFit::Name("mc"));
-	model_mc.plotOn(xframe_mc, RooFit::Name("MC PDF"), LineColor(kBlue));
+	model_mc->plotOn(xframe_mc, RooFit::Name("MC PDF"), LineColor(kBlue));
 	RooHist* hpull_mc = xframe_mc->pullHist();
 
 	printf("**************************************");
@@ -259,8 +281,8 @@ void gauss_const()
         std::cout<<"\n"<<std::endl;
         std::cout<<"#chi^{2}/dof= "<< chi2dof_mc << std::endl;
 
-	model_mc.plotOn(xframe_mc, RooFit::Name("CB1_mc"), Components("CB1_mc"), LineStyle(kDashed), LineColor(kRed));
-	model_mc.plotOn(xframe_mc, RooFit::Name("CB2_mc"), Components("CB2_mc"), LineStyle(kDashed), LineColor(kGreen));
+	model_mc->plotOn(xframe_mc, RooFit::Name("CB1_mc"), Components("CB1_mc"), LineStyle(kDashed), LineColor(kRed));
+	model_mc->plotOn(xframe_mc, RooFit::Name("CB2_mc"), Components("CB2_mc"), LineStyle(kDashed), LineColor(kGreen));
 
 	xframe_mc->Draw();
 
@@ -288,7 +310,6 @@ void gauss_const()
         mk->SetTextFont(42);
         mk->SetTextSize(0.035);
         mk->DrawLatex(0.12,startY,"#bf{CMS} #it{Simulation}");
-
         mk->DrawLatex(0.75,startY,"#scale[0.8]{66226.56 fb^{-1} (13 TeV)}");
 
 	mk->Draw();
@@ -313,6 +334,8 @@ void gauss_const()
 	l1->Draw();
 	l2->Draw();
 	l3->Draw();
+    c4->SaveAs("Kstar.pdf");
+    //exit(0);
 
 	cout<< "***********************************************************"<< endl;
 	cout<< "***********************************************************"<< endl;
@@ -324,7 +347,7 @@ void gauss_const()
 	cout<< "***********************************************************"<< endl;
 
 	TChain *ch1 = new TChain("tree");
-	ch1->Add("/home/rishabh/project/root_files/val/2016/red_ntuples/JPsi_Data_ForFit.root");
+	ch1->Add("/afs/cern.ch/work/r/rraturi/public/IsoVar/2016/red_ntuples/JPsi_Data_ForFit.root");
 	TTree *tr1 = ch1;
 	RooDataSet Data("Data","data sample 2016", ch1, observables);
 	RooDataSet *RedData = (RooDataSet*)Data.reduce(cutTotal);
@@ -335,18 +358,16 @@ void gauss_const()
 	//exponential pdf
 	RooRealVar lambda("lambda","slope",-10.,0.);
         RooExponential bkgE("bkgE","exponential PDF", Bmass, lambda);
-	RooRealVar nbkgE("nbkgE","number of exponential bkg events", 8000, 0, 1E7);
-
-	RooRealVar  mn("mean","common means for Crystal Balls", 5.367, bm_min, bm_max);
-        RooRealVar  s1("sigma1","sigma of CB1",  0.02, 0., 0.1);
-        RooRealVar  s2("sigma2","sigma of CB2",  0.04, 0., 0.1);
-        RooRealVar  f("sigM_frac","fraction of CB", 0.5, 0., 0.1);
-        RooRealVar  norm1("n1", "", 20., 1., 100.);
-        RooRealVar  norm2("n2", "", 20., 1., 100.);
-        RooRealVar  a1("alpha1","alpha for CB1",0.5, 0.1, 4.);
-        RooRealVar  a2("alpha2","alpha for CB2", -0.1, -5.0, 0.);
-
-	RooCBShape PB1("PB1","Crystal Ball-1", Bmass, mn, s1, a1,norm1);
+	    RooRealVar nbkgE("nbkgE","number of exponential bkg events", 8000, 0, 1E7);
+	    RooRealVar  mn("mean","common means for Crystal Balls", 5.367, bm_min, bm_max);
+        RooRealVar  s1("s1","sigma of CB1",  0.02, 0., 0.1);
+        RooRealVar  s2("s2","sigma of CB2",  0.04, 0., 0.1);
+        RooRealVar  f("sigM_fracData","fraction of CB", 0.5, 0., 0.1);
+        RooRealVar  norm1("norm1", "", 20., 1., 100.);
+        RooRealVar  norm2("norm2", "", 20., 1., 100.);
+        RooRealVar  a1("a1","alpha for CB1",0.5, 0.1, 4.);
+        RooRealVar  a2("a2","alpha for CB2", -0.1, -5.0, 0.);
+	    RooCBShape PB1("PB1","Crystal Ball-1", Bmass, mn, s1, a1,norm1);
         RooCBShape PB2("PB2","Crystal Ball-2", Bmass, mn, s2, a2,norm2);
 
 	RooAddPdf PB("PB","PB1+PB2", RooArgList(PB1,PB2), RooArgList(f));
@@ -505,11 +526,11 @@ void gauss_const()
         pT->AddText(Form("n_{2} = %.7f #pm %.7f", n2.getVal(), n2.getError()));
 	pT->AddText(Form("#chi^{2}/dof  = %.5f	", chi2dof1 ));
 
-	/*pT->AddText(Form("#sigma_{1} = %.6f #pm %.6f GeV", sig1.getVal(), sig1.getError()));
-	pT->AddText(Form("#sigma_{2} = %.6f #pm %.6f GeV", sig2.getVal(), sig2.getError()));
-	pT->AddText(Form("f = %.6f #pm %.6f ", MC_frac.getVal(), MC_frac.getError()));
-	pT->AddText(Form("#alpha_{1} = %.7f #pm %.7f ", alp1.getVal(), alp1.getError()));
-        pT->AddText(Form("#alpha_{2} = %.7f #pm %.7f ", alp2.getVal(), alp2.getError()));*/
+	//pT->AddText(Form("#sigma_{1} = %.6f #pm %.6f GeV", sig1.getVal(), sig1.getError()));
+	//pT->AddText(Form("#sigma_{2} = %.6f #pm %.6f GeV", sig2.getVal(), sig2.getError()));
+	//pT->AddText(Form("f = %.6f #pm %.6f ", MC_frac.getVal(), MC_frac.getError()));
+	//pT->AddText(Form("#alpha_{1} = %.7f #pm %.7f ", alp1.getVal(), alp1.getError()));
+    //pT->AddText(Form("#alpha_{2} = %.7f #pm %.7f ", alp2.getVal(), alp2.getError()));
 
 	pT->Draw();
 
@@ -551,8 +572,7 @@ void gauss_const()
         L2->Draw();
         L3->Draw();
 
-	c->SaveAs("Jpsi_MCFit_2016_Log.pdf");
-	c->SaveAs("Jpsi_MCFit_2016_Log.png");
+	//c->SaveAs("Jpsi_MCFit_2016_Log.png");
 
 	c2->SaveAs("Jpsi_MCFit_2016.pdf");
 	c2->SaveAs("Jpsi_MCFit_2016.png");
