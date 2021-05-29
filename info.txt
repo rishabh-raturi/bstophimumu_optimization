@@ -1,3 +1,5 @@
 
 
 This is a separate text file for this repository!
+
+"Now making atomic commits!"
